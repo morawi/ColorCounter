@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from skimage.transform import resize
 from datetime import datetime
-import json
+from file_io import save_as_json, read_from_json
 
 
 
@@ -34,12 +34,13 @@ parser.add_argument("--generated_dataset_name", type=str, default="colors_of_fas
 
 
 cnf = parser.parse_args()
-cnf.num_color_permutations=2
+cnf.num_color_permutations = 10
 cnf.rgb_min = (0, 0, 0) # lower bound colors used to draw the text
 cnf.rgb_max = (255, 255, 255) # lower bound colors used to draw the text
+random_seed_value = datetime.now()
 
-
-path = 'C://MyPrograms//Data/ColorCountData//'
+# path = 'C://MyPrograms//Data/ColorCountData//train//'
+path = 'C://MyPrograms//Data/ColorCountData//test//'
 
 def get_random_rgb(rgb_min, rgb_max):
     R = random.randint(rgb_min[0], rgb_max[0])
@@ -55,34 +56,24 @@ def duplicate_mask(mask):
     return mask1
      
     
-def save_as_json(fname, colors_in_images, image_names, labels_in_images, cnf):
-    color_dict={}
-    color_dict['cnf'] = vars(cnf)
-    color_dict['colors_in_images'] = colors_in_images
-    color_dict['image_names'] = image_names
-    color_dict['labels_in_images'] = labels_in_images
-    with open(fname, 'w') as fp:
-        json.dump(color_dict, fp, indent=True)
-       
-def read_from_json(fname):
-    with open(fname) as json_file:
-        data_dict = json.load(json_file)
-    return data_dict
+
 
 dataset = ImageDataset(root= "../data/%s" % cnf.source_dataset_name, 
                                class_names_and_colors= get_59_class_names(),                                
                                 mode="train",                          
                                 HPC_run=False,                                 
                             )
-def generate_color_dataset(dataset, cnf, display_image = True, num_images_to_use=1e10):
-    image_names = []
+def generate_color_dataset(dataset, cnf, display_image = False, num_images_to_use=1e10):
+    
+    colors = {}; labels={}
+    print('Processing image...', end='')
     for ii, item in enumerate(dataset):
+        print(ii,'', end='')
         if ii>num_images_to_use: break
-        image_A, masked_img, labels, image_id, masks, fname = item
+        image_A, masked_img, img_labels, image_id, masks, fname = item        
         
-        labels_in_images = []
-        colors_in_images = []            
-        for jj in range(cnf.num_color_permutations):        
+        for jj in range(cnf.num_color_permutations):                    
+            colors_in_image = []            
             image_base = Image.new("RGBA", image_A.size, (0, 0, 0, 0))
             for kk, mask in enumerate(masks):        
                 R, G, B = get_random_rgb(cnf.rgb_min, cnf.rgb_max)        
@@ -91,19 +82,20 @@ def generate_color_dataset(dataset, cnf, display_image = True, num_images_to_use
                 mask4 = Image.fromarray(np.asarray(255*np.dstack([mask]*4), dtype='uint8'))     
                 image = ImageChops.multiply(image, mask4)        
                 image_base = Image.alpha_composite(image_base, image)
-                colors_in_images.append([R,G, B])
-                labels_in_images.append(labels)
+                colors_in_image.append([R,G, B])                
                         
             image_name = fname+str(jj)+'.png'    
+            colors[image_name]=colors_in_image
+            labels[image_name]=img_labels
             image_base.save(path+image_name, 'png')
-            image_names.append(image_name)
-            display(image_base)
+            
+            if display_image: display(image_base)
         
-    return colors_in_images, image_names, labels_in_images
+    return colors, labels
 
-random.seed(datetime.now())
-colors_in_images, image_names, labels_in_images = generate_color_dataset(dataset, cnf, num_images_to_use=1)
-save_as_json(path+ cnf.generated_dataset_name, colors_in_images, image_names, labels_in_images, cnf)   
+random.seed(random_seed_value)
+colors, labels = generate_color_dataset(dataset, cnf, num_images_to_use=999)
+save_as_json(path+ cnf.generated_dataset_name, colors, labels, cnf)   
 data_dict = read_from_json(path+cnf.generated_dataset_name)
 
 
