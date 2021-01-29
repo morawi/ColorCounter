@@ -39,8 +39,8 @@ cnf.rgb_min = (0, 0, 0) # lower bound colors used to draw the text
 cnf.rgb_max = (255, 255, 255) # lower bound colors used to draw the text
 random_seed_value = datetime.now()
 
-# path = 'C://MyPrograms//Data/ColorCountData//train//'
-path = 'C://MyPrograms//Data/ColorCountData//test//'
+# path = 'C:/MyPrograms//Data/ColorCountData/train/'
+path = 'C:/MyPrograms/Data/ColorCountData/validate/'
 
 def get_random_rgb(rgb_min, rgb_max):
     R = random.randint(rgb_min[0], rgb_max[0])
@@ -95,7 +95,8 @@ def generate_color_dataset(dataset, cnf, display_image = False, num_images_to_us
 
 random.seed(random_seed_value)
 colors, labels = generate_color_dataset(dataset, cnf, num_images_to_use=999)
-save_as_json(path+ cnf.generated_dataset_name, colors, labels, cnf)   
+# TODO all labels, needed to load dataset
+save_as_json(path+ cnf.generated_dataset_name, colors, labels, all_labels, cnf)    
 data_dict = read_from_json(path+cnf.generated_dataset_name)
 
 
